@@ -1,35 +1,27 @@
-import express from 'express';
-//import {listings} from "./listings";
-//import bodyParser from "body-parser"
+require('dotenv').config();
+
+import express, {Application} from 'express';
 import {ApolloServer} from "apollo-server-express";
-import {schema} from "./graphql";
 import {typeDefs, resolvers} from "./graphql/index";
+import {connectDatabase} from "./database";
+import {Database} from "./lib/types";
 
-const app = express();
-const port = 9000;
-//const server = new ApolloServer({schema});
-const server = new ApolloServer({typeDefs, resolvers});
-server.applyMiddleware({app, path:"/api"});
+const mount = async (app: Application) => {
+    const db = await connectDatabase();
+    const server = new ApolloServer(
+        {typeDefs,
+            resolvers,
+            context: () => ({db})
+        });
+    server.applyMiddleware({app, path:"/api"});
 
-//app.use(bodyParser.json());
+    app.listen(process.env.PORT);
 
-// REST API version.
-/*app.get('/listings', (_req, res) => {
-    res.send(listings);
-});
+    console.log('Fraiser is listening.');
 
-app.post('/delete-listing', (req, res) => {
-   const id: string = req.body.id;
-   for(let i  = 0; i < listings.length; i++) {
-       if(listings[i].id == id) {
-           res.send(listings.splice(i, 1));
-       }
-   }
-   res.send('Could not delete this thing.');
-});*/
+    const listings = await db.listings.find({}).toArray();
+    console.log(listings);
+};
 
+mount(express());
 
-
-app.listen(port);
-
-console.log('Fraiser is listening.');
